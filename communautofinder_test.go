@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 func TestNouvelleStructureExportee(t *testing.T) {
@@ -15,10 +13,6 @@ func TestNouvelleStructureExportee(t *testing.T) {
 
 	defer close(resultsChannelStation)
 	defer close(resultsChannelFlex)
-
-	logger, _ := zap.NewProduction()
-	defer logger.Sync()
-	sugar = logger.Sugar()
 
 	var currentCoordinate Coordinate = New(45.538638, -73.570039)
 

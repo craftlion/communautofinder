@@ -3,24 +3,21 @@ package communautofinder
 import (
 	"encoding/json"
 	"fmt"
+	"log"
 	"net/http"
 	"net/url"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 const cityId = 59 // see available cities -> https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
 
 const fetchDelayInMin = 1 // delay between two API call
 
-var sugar *zap.SugaredLogger
-
 func communautoAPICall(url string, response interface{}) {
 	resp, err := http.Get(url)
 
 	if err != nil {
-		sugar.Fatal(err)
+		log.Fatal(err)
 	}
 
 	defer resp.Body.Close()
@@ -30,10 +27,10 @@ func communautoAPICall(url string, response interface{}) {
 		errDecode := json.NewDecoder(resp.Body).Decode(response)
 
 		if errDecode != nil {
-			sugar.Fatal(errDecode)
+			log.Fatal(errDecode)
 		}
 	} else {
-		sugar.Fatalf("Error %d in API call", resp.StatusCode)
+		log.Fatalf("Error %d in API call", resp.StatusCode)
 	}
 }
 
@@ -94,7 +91,7 @@ func RoutineSearchStationCar(currentCoordinate Coordinate, marginInKm float64, s
 	defer func() {
 		if r := recover(); r != nil {
 			responseChannel <- 0
-			sugar.Errorf("Pannic append :", r)
+			log.Panicf("Pannic append :", r)
 		}
 	}()
 
@@ -108,7 +105,7 @@ func RoutineSearchFlexCar(currentCoordinate Coordinate, marginInKm float64, resp
 	defer func() {
 		if r := recover(); r != nil {
 			responseChannel <- 0
-			sugar.Errorf("Pannic append :", r)
+			log.Panicf("Pannic append :", r)
 		}
 	}()
 
