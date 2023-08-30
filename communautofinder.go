@@ -91,7 +91,7 @@ func RoutineSearchStationCar(currentCoordinate Coordinate, marginInKm float64, s
 	defer func() {
 		if r := recover(); r != nil {
 			responseChannel <- 0
-			log.Panicf("Pannic append :", r)
+			log.Printf("Pannic append : %s", r)
 		}
 	}()
 
@@ -105,7 +105,7 @@ func RoutineSearchFlexCar(currentCoordinate Coordinate, marginInKm float64, resp
 	defer func() {
 		if r := recover(); r != nil {
 			responseChannel <- 0
-			log.Panicf("Pannic append :", r)
+			log.Printf("Pannic append : %s", r)
 		}
 	}()
 
