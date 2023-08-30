@@ -7,7 +7,7 @@ type Coordinate struct {
 	longitude float64
 }
 
-func new(latitude float64, longitude float64) Coordinate {
+func New(latitude float64, longitude float64) Coordinate {
 	return Coordinate{latitude: latitude, longitude: longitude}
 }
 

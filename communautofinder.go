@@ -16,9 +16,6 @@ const fetchDelayInMin = 1 // delay between two API call
 
 var sugar *zap.SugaredLogger
 
-var resultsChannelStation = make(chan int)
-var resultsChannelFlex = make(chan int)
-
 func communautoAPICall(url string, response interface{}) {
 	resp, err := http.Get(url)
 
@@ -41,15 +38,8 @@ func communautoAPICall(url string, response interface{}) {
 }
 
 // Keep looping until a station car is not found for the specified dates and position
-// return the number of car found and fill the channel with
+// return the number of car found
 func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
-
-	defer func() {
-		if r := recover(); r != nil {
-			resultsChannelStation <- 0
-			sugar.Errorf("Pannic append :", r)
-		}
-	}()
 
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
@@ -67,7 +57,6 @@ func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDat
 		nbCarFound := len(stationsAvailable.Stations)
 
 		if nbCarFound > 0 {
-			resultsChannelStation <- nbCarFound
 			return nbCarFound
 		}
 
@@ -76,15 +65,8 @@ func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDat
 }
 
 // Keep looping until a flex car is not found for the specified position
-// return the number of car found and fill the channel with
+// return the number of car found
 func SearchFlexCar(currentCoordinate Coordinate, marginInKm float64) int {
-
-	defer func() {
-		if r := recover(); r != nil {
-			resultsChannelFlex <- 0
-			sugar.Errorf("Pannic append :", r)
-		}
-	}()
 
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
@@ -98,10 +80,37 @@ func SearchFlexCar(currentCoordinate Coordinate, marginInKm float64) int {
 		nbCarFound := stationsAvailable.TotalNbVehicles
 
 		if nbCarFound > 0 {
-			resultsChannelFlex <- nbCarFound
 			return nbCarFound
 		}
 
 		time.Sleep(fetchDelayInMin * time.Minute)
 	}
+}
+
+// Keep looping until a station car is not found for the specified dates and position
+// fill the channel with number car found
+func RoutineSearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			responseChannel <- 0
+			sugar.Errorf("Pannic append :", r)
+		}
+	}()
+
+	responseChannel <- SearchStationCar(currentCoordinate, marginInKm, startDate, endDate)
+}
+
+// Keep looping until a flex car is not found for the specified position
+// fill the channel with number car found
+func RoutineSearchFlexCar(currentCoordinate Coordinate, marginInKm float64, responseChannel chan int) {
+
+	defer func() {
+		if r := recover(); r != nil {
+			responseChannel <- 0
+			sugar.Errorf("Pannic append :", r)
+		}
+	}()
+
+	responseChannel <- SearchFlexCar(currentCoordinate, marginInKm)
 }
