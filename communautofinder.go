@@ -57,6 +57,8 @@ func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float
 		urlCalled = fmt.Sprintf("https://restapifrontoffice.reservauto.net/api/v2/StationAvailability?CityId=%d&MaxLatitude=%f&MinLatitude=%f&MaxLongitude=%f&MinLongitude=%f&StartDate=%s&EndDate=%s", cityId, maxCoordinate.latitude, minCoordinate.latitude, maxCoordinate.longitude, minCoordinate.longitude, url.QueryEscape(startDateFormat), url.QueryEscape(endDataFormat))
 	}
 
+	msSecondeToSleep := 0
+
 	for {
 
 		select {
@@ -65,28 +67,33 @@ func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float
 			return -1
 		default:
 
-			var nbCarFound int
+			if msSecondeToSleep > 0 {
+				time.Sleep(time.Millisecond)
+				msSecondeToSleep--
+			} else {
+				var nbCarFound int
 
-			if searchingType == searchingFlex {
-				var flexAvailable flexCarResponse
+				if searchingType == searchingFlex {
+					var flexAvailable flexCarResponse
 
-				communautoAPICall(urlCalled, &flexAvailable)
+					communautoAPICall(urlCalled, &flexAvailable)
 
-				nbCarFound = flexAvailable.TotalNbVehicles
-			} else if searchingType == searchingStation {
-				var stationsAvailable stationsResponse
+					nbCarFound = flexAvailable.TotalNbVehicles
+				} else if searchingType == searchingStation {
+					var stationsAvailable stationsResponse
 
-				communautoAPICall(urlCalled, &stationsAvailable)
+					communautoAPICall(urlCalled, &stationsAvailable)
 
-				nbCarFound = len(stationsAvailable.Stations)
+					nbCarFound = len(stationsAvailable.Stations)
+				}
+
+				if nbCarFound > 0 {
+					responseChannel <- nbCarFound
+					return nbCarFound
+				}
+
+				msSecondeToSleep = fetchDelayInMin * 60 * 1000
 			}
-
-			if nbCarFound > 0 {
-				responseChannel <- nbCarFound
-				return nbCarFound
-			}
-
-			time.Sleep(fetchDelayInMin * time.Minute)
 		}
 	}
 }
