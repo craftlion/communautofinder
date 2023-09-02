@@ -24,6 +24,13 @@ then import in your code
 import "github.com/craftlion/communautofinder"
 ```
 
+## Usage
+
+CityId is set by default for Montréal (59). You can change it with another city avalaible here https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
+
+You can call SearchStationCar() or SearchFlexCar()
+You can call SearchFlexCarForGoRoutine() or SearchStationCarForGoRoutine() as goroutine
+
 ## Exemple
 
 ``` go
