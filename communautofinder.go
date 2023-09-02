@@ -14,7 +14,7 @@ const cityId = 59 // see available cities -> https://restapifrontoffice.reservau
 
 const fetchDelayInMin = 1 // delay between two API call
 
-const dateFormat = "2006-01-02T15:04:05"
+const dateFormat = "2006-01-02T15:04:05" // time format accepted by communauto API
 
 // Different type of vehicule possible to search
 const (
@@ -22,27 +22,53 @@ const (
 	searchingStation
 )
 
-func communautoAPICall(url string, response interface{}) {
-	resp, err := http.Get(url)
+// As soon as at least one car is found return the number of cars found
+func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
+	responseChannel := make(chan int)
+	ctx, cancel := context.WithCancel(context.Background())
+	nbCarFound := searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+	cancel()
 
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusOK {
-
-		errDecode := json.NewDecoder(resp.Body).Decode(response)
-
-		if errDecode != nil {
-			log.Fatal(errDecode)
-		}
-	} else {
-		log.Fatalf("Error %d in API call", resp.StatusCode)
-	}
+	return nbCarFound
 }
 
+// As soon as at least one car is found return the number of cars found
+func SearchFlexCar(currentCoordinate Coordinate, marginInKm float64) int {
+	responseChannel := make(chan int)
+	ctx, cancel := context.WithCancel(context.Background())
+	nbCarFound := searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	cancel()
+
+	return nbCarFound
+}
+
+// This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
+func SearchStationCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
+
+	defer func() {
+		if r := recover(); r != nil {
+			responseChannel <- -1
+			log.Printf("Pannic append : %s", r)
+		}
+	}()
+
+	return searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+}
+
+// This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
+func SearchFlexCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, responseChannel chan int, ctx context.Context) int {
+
+	defer func() {
+		if r := recover(); r != nil {
+			responseChannel <- -1
+			log.Printf("Pannic append : %s", r)
+		}
+	}()
+
+	return searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+}
+
+// Loop until a result is found. Return the number of cars found or can be cancelled by the context
 func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
@@ -76,13 +102,13 @@ func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float
 				if searchingType == searchingFlex {
 					var flexAvailable flexCarResponse
 
-					communautoAPICall(urlCalled, &flexAvailable)
+					apiCall(urlCalled, &flexAvailable)
 
 					nbCarFound = flexAvailable.TotalNbVehicles
 				} else if searchingType == searchingStation {
 					var stationsAvailable stationsResponse
 
-					communautoAPICall(urlCalled, &stationsAvailable)
+					apiCall(urlCalled, &stationsAvailable)
 
 					nbCarFound = len(stationsAvailable.Stations)
 				}
@@ -92,46 +118,30 @@ func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float
 					return nbCarFound
 				}
 
-				msSecondeToSleep = fetchDelayInMin * 60 * 1000
+				msSecondeToSleep = fetchDelayInMin * 60 * 1000 // Wait only 1ms each time to don't block the for loop and be able to catch the cancel signal
 			}
 		}
 	}
 }
 
-func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
-	responseChannel := make(chan int)
-	ctx, _ := context.WithCancel(context.Background())
-	return searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
-}
+// Make an api call at url passed and return the result in response object
+func apiCall(url string, response interface{}) {
+	resp, err := http.Get(url)
 
-func SearchFlexCar(currentCoordinate Coordinate, marginInKm float64) int {
-	responseChannel := make(chan int)
-	ctx, _ := context.WithCancel(context.Background())
-	return searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
-}
+	if err != nil {
+		log.Fatal(err)
+	}
 
-// This function is designed to be called as a goroutine. It returns the result in a channel and can be canceled using a cancel context.
-func SearchStationCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
+	defer resp.Body.Close()
 
-	defer func() {
-		if r := recover(); r != nil {
-			responseChannel <- -1
-			log.Printf("Pannic append : %s", r)
+	if resp.StatusCode == http.StatusOK {
+
+		errDecode := json.NewDecoder(resp.Body).Decode(response)
+
+		if errDecode != nil {
+			log.Fatal(errDecode)
 		}
-	}()
-
-	return searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
-}
-
-// This function is designed to be called as a goroutine. It returns the result in a channel and can be canceled using a cancel context.
-func SearchFlexCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, responseChannel chan int, ctx context.Context) int {
-
-	defer func() {
-		if r := recover(); r != nil {
-			responseChannel <- -1
-			log.Printf("Pannic append : %s", r)
-		}
-	}()
-
-	return searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	} else {
+		log.Fatalf("Error %d in API call", resp.StatusCode)
+	}
 }

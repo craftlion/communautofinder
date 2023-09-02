@@ -1,5 +1,9 @@
 package communautofinder
 
+// --------------------------------------------
+// Types used to decode Communauto API response
+// --------------------------------------------
+
 type location struct {
 	Latitude  float64 `json:"latitude"`
 	Longitude float64 `json:"longitude"`

@@ -1,5 +1,9 @@
 package communautofinder
 
+// --------------------------------------------
+// Compute on GPS position in latitude longitude
+// --------------------------------------------
+
 import "math"
 
 type Coordinate struct {
