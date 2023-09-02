@@ -25,9 +25,6 @@ import "github.com/craftlion/communautofinder"
 ```
 
 ## Usage
-
-- CityId is set by default for Montréal (59). You can change it with another city avalaible here https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
-
 - You can call SearchStationCar() or SearchFlexCar()
 - You can call SearchFlexCarForGoRoutine() or SearchStationCarForGoRoutine() as goroutine
 
@@ -36,16 +33,18 @@ import "github.com/craftlion/communautofinder"
 ``` go
 func TestUseExemple(t *testing.T) {
 
+	const cityId = 59 // see available cities -> https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
+
 	var currentCoordinate Coordinate = New(45.538638, -73.570039)
 	startDate := time.Now().AddDate(0, 0, 28)
 	endDate := time.Now().AddDate(0, 0, 29)
 
 	// Search flex car
-	nbCarFoundFlex := SearchFlexCar(currentCoordinate, 10)
+	nbCarFoundFlex := SearchFlexCar(cityId, currentCoordinate, 10)
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car
-	nbCarFoundStation := SearchStationCar(currentCoordinate, 10, startDate, endDate)
+	nbCarFoundStation := SearchStationCar(cityId, currentCoordinate, 10, startDate, endDate)
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 
 	/////////////////////////////////
@@ -59,12 +58,12 @@ func TestUseExemple(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Search flex car with go routine
-	go SearchFlexCarForGoRoutine(currentCoordinate, 10, resultsChannelFlex, ctx)
+	go SearchFlexCarForGoRoutine(cityId, currentCoordinate, 10, resultsChannelFlex, ctx)
 	nbCarFoundFlex = <-resultsChannelFlex
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car with go routine
-	go SearchStationCarForGoRoutine(currentCoordinate, 10, startDate, endDate, resultsChannelStation, ctx)
+	go SearchStationCarForGoRoutine(cityId, currentCoordinate, 10, startDate, endDate, resultsChannelStation, ctx)
 	nbCarFoundStation = <-resultsChannelStation
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 

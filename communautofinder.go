@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-var CityId = 59 // see available cities -> https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
-
 const fetchDelayInMin = 1 // delay between two API call
 
 const dateFormat = "2006-01-02T15:04:05" // time format accepted by communauto API
@@ -23,27 +21,27 @@ const (
 )
 
 // As soon as at least one car is found return the number of cars found
-func SearchStationCar(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
+func SearchStationCar(cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
 	responseChannel := make(chan int)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+	nbCarFound := searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
 	cancel()
 
 	return nbCarFound
 }
 
 // As soon as at least one car is found return the number of cars found
-func SearchFlexCar(currentCoordinate Coordinate, marginInKm float64) int {
+func SearchFlexCar(cityId int, currentCoordinate Coordinate, marginInKm float64) int {
 	responseChannel := make(chan int)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	nbCarFound := searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
 	cancel()
 
 	return nbCarFound
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchStationCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
+func SearchStationCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -52,11 +50,11 @@ func SearchStationCarForGoRoutine(currentCoordinate Coordinate, marginInKm float
 		}
 	}()
 
-	return searchCar(searchingStation, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+	return searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchFlexCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64, responseChannel chan int, ctx context.Context) int {
+func SearchFlexCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, responseChannel chan int, ctx context.Context) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -65,11 +63,11 @@ func SearchFlexCarForGoRoutine(currentCoordinate Coordinate, marginInKm float64,
 		}
 	}()
 
-	return searchCar(searchingFlex, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	return searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
 }
 
 // Loop until a result is found. Return the number of cars found or can be cancelled by the context
-func searchCar(searchingType int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
+func searchCar(searchingType int, cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan int, ctx context.Context) int {
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
 	var urlCalled string
