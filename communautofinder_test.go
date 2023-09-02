@@ -1,6 +1,7 @@
 package communautofinder
 
 import (
+	"context"
 	"fmt"
 	"testing"
 	"time"
@@ -19,8 +20,10 @@ func TestNouvelleStructureExportee(t *testing.T) {
 	startDate := time.Now().AddDate(0, 0, 28)
 	endDate := time.Now().AddDate(0, 0, 29)
 
-	go RoutineSearchStationCar(currentCoordinate, 10, startDate, endDate, resultsChannelStation)
-	go RoutineSearchFlexCar(currentCoordinate, 10, resultsChannelFlex)
+	ctx, _ := context.WithCancel(context.Background())
+
+	go SearchStationCarForGoRoutine(currentCoordinate, 10, startDate, endDate, resultsChannelStation, ctx)
+	go SearchFlexCarForGoRoutine(currentCoordinate, 10, resultsChannelFlex, ctx)
 
 	nbCarFoundStation := <-resultsChannelStation
 	nbCarFoundFlex := <-resultsChannelFlex
