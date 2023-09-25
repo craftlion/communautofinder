@@ -19,7 +19,7 @@ type station struct {
 	StationName            string      `json:"stationName"`
 	StationLocation        location    `json:"stationLocation"`
 	CityId                 int         `json:"cityId"`
-	RecommendedVehicleId   int         `json:"recommendedVehicleId"`
+	RecommendedVehicleId   *int        `json:"recommendedVehicleId"` // pointer to be nil if value not exist in JSON
 	HasAllRequestedOptions bool        `json:"hasAllRequestedOptions"`
 	SatisfiesFilters       bool        `json:"satisfiesFilters"`
 	VehiclePromotions      interface{} `json:"vehiclePromotions"` // You can replace interface{} with an appropriate type if known
@@ -32,15 +32,5 @@ type flexCarResponse struct {
 }
 
 type vehicle struct {
-	VehicleId                 int      `json:"vehicleId"`
-	VehicleNb                 int      `json:"vehicleNb"`
-	CityId                    int      `json:"cityId"`
-	VehiclePropulsionTypeId   int      `json:"vehiclePropulsionTypeId"`
-	VehicleTypeId             int      `json:"vehicleTypeId"`
-	VehicleBodyTypeId         int      `json:"vehicleBodyTypeId"`
-	VehicleTransmissionTypeId int      `json:"vehicleTransmissionTypeId"`
-	VehicleTireTypeId         int      `json:"vehicleTireTypeId"`
-	VehicleAccessories        []int    `json:"vehicleAccessories"`
-	VehicleLocation           location `json:"vehicleLocation"`
-	SatisfiesFilters          bool     `json:"satisfiesFilters"`
+	VehicleId int `json:"vehicleId"`
 }
