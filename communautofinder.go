@@ -3,6 +3,7 @@ package communautofinder
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,7 +25,7 @@ const (
 func SearchStationCar(cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+	nbCarFound := searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
@@ -34,14 +35,14 @@ func SearchStationCar(cityId int, currentCoordinate Coordinate, marginInKm float
 func SearchFlexCar(cityId int, currentCoordinate Coordinate, marginInKm float64) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	nbCarFound := searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchStationCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan<- int, ctx context.Context) int {
+func SearchStationCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -50,11 +51,11 @@ func SearchStationCarForGoRoutine(cityId int, currentCoordinate Coordinate, marg
 		}
 	}()
 
-	return searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx)
+	return searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, responseChannel, ctx, cancelCtxFunc)
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchFlexCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, responseChannel chan<- int, ctx context.Context) int {
+func SearchFlexCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginInKm float64, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -63,11 +64,11 @@ func SearchFlexCarForGoRoutine(cityId int, currentCoordinate Coordinate, marginI
 		}
 	}()
 
-	return searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx)
+	return searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, responseChannel, ctx, cancelCtxFunc)
 }
 
 // Loop until a result is found. Return the number of cars found or can be cancelled by the context
-func searchCar(searchingType int, cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan<- int, ctx context.Context) int {
+func searchCar(searchingType int, cityId int, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
 	var urlCalled string
@@ -97,22 +98,28 @@ func searchCar(searchingType int, cityId int, currentCoordinate Coordinate, marg
 			} else {
 				nbCarFound := 0
 
+				var err error
+
 				if searchingType == searchingFlex {
 					var flexAvailable flexCarResponse
 
-					apiCall(urlCalled, &flexAvailable)
+					err = apiCall(urlCalled, &flexAvailable)
 
 					nbCarFound = flexAvailable.TotalNbVehicles
 				} else if searchingType == searchingStation {
 					var stationsAvailable stationsResponse
 
-					apiCall(urlCalled, &stationsAvailable)
+					err = apiCall(urlCalled, &stationsAvailable)
 
 					for _, station := range stationsAvailable.Stations {
 						if station.RecommendedVehicleId != nil {
 							nbCarFound++
 						}
 					}
+				}
+
+				if err != nil {
+					cancelCtxFunc()
 				}
 
 				if nbCarFound > 0 {
@@ -127,7 +134,7 @@ func searchCar(searchingType int, cityId int, currentCoordinate Coordinate, marg
 }
 
 // Make an api call at url passed and return the result in response object
-func apiCall(url string, response interface{}) {
+func apiCall(url string, response interface{}) error {
 	resp, err := http.Get(url)
 
 	if err != nil {
@@ -144,6 +151,12 @@ func apiCall(url string, response interface{}) {
 			log.Fatal(errDecode)
 		}
 	} else {
-		log.Fatalf("Error %d in API call", resp.StatusCode)
+
+		errString := fmt.Sprintf("Error %d in API call", resp.StatusCode)
+		err = errors.New(errString)
+
+		log.Print(err)
 	}
+
+	return err
 }

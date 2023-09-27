@@ -34,12 +34,12 @@ func TestUseExemple(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Search flex car with go routine
-	go SearchFlexCarForGoRoutine(cityId, currentCoordinate, 10, resultsChannelFlex, ctx)
+	go SearchFlexCarForGoRoutine(cityId, currentCoordinate, 10, resultsChannelFlex, ctx, cancel)
 	nbCarFoundFlex = <-resultsChannelFlex
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car with go routine
-	go SearchStationCarForGoRoutine(cityId, currentCoordinate, 10, startDate, endDate, resultsChannelStation, ctx)
+	go SearchStationCarForGoRoutine(cityId, currentCoordinate, 10, startDate, endDate, resultsChannelStation, ctx, cancel)
 	nbCarFoundStation = <-resultsChannelStation
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 
