@@ -12,15 +12,15 @@ func TestUseExemple(t *testing.T) {
 	const cityId = 59 // see available cities -> https://restapifrontoffice.reservauto.net/ReservautoFrontOffice/index.html?urls.primaryName=Branch%20version%202%20(6.93.1)#/
 
 	var currentCoordinate Coordinate = New(45.538638, -73.570039)
-	startDate := time.Now().AddDate(0, 0, 13)
-	endDate := time.Now().AddDate(0, 0, 14)
+	startDate := time.Now().AddDate(0, 0, 20)
+	endDate := time.Now().AddDate(0, 0, 21)
 
 	// Search flex car
 	nbCarFoundFlex := SearchFlexCar(cityId, currentCoordinate, 10)
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car
-	nbCarFoundStation := SearchStationCar(cityId, currentCoordinate, 10, startDate, endDate)
+	nbCarFoundStation := SearchStationCar(cityId, currentCoordinate, 10, startDate, endDate, []VehiculeType{3, 5})
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 
 	/////////////////////////////////
