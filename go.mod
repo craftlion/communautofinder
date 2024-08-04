@@ -1,3 +1,3 @@
-module github.com/craftlion/communautofinder/v2
+module github.com/craftlion/communautofinder
 
 go 1.22
