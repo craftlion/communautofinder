@@ -5,8 +5,8 @@ package communautofinder
 type SearchType int
 
 const (
-	searchingFlex    SearchType = 0
-	searchingStation SearchType = 1
+	SearchingFlex    SearchType = 0
+	SearchingStation SearchType = 1
 )
 
 type CityId int

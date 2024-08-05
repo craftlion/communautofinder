@@ -20,7 +20,7 @@ const dateFormat = "2006-01-02T15:04:05" // time format accepted by communauto A
 func SearchStationCar(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeTypes []VehiculeType) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeTypes, responseChannel, ctx, cancel)
+	nbCarFound := searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeTypes, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
@@ -30,14 +30,14 @@ func SearchStationCar(cityId CityId, currentCoordinate Coordinate, marginInKm fl
 func SearchFlexCar(cityId CityId, currentCoordinate Coordinate, marginInKm float64) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancel)
+	nbCarFound := searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
+func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeTypes []VehiculeType, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -46,7 +46,7 @@ func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, m
 		}
 	}()
 
-	return searchCar(searchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, []VehiculeType{}, responseChannel, ctx, cancelCtxFunc)
+	return searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeTypes, responseChannel, ctx, cancelCtxFunc)
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
@@ -59,7 +59,7 @@ func SearchFlexCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marg
 		}
 	}()
 
-	return searchCar(searchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancelCtxFunc)
+	return searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancelCtxFunc)
 }
 
 // Loop until a result is found. Return the number of cars found or can be cancelled by the context
@@ -68,9 +68,9 @@ func searchCar(searchingType SearchType, cityId CityId, currentCoordinate Coordi
 
 	var urlCalled string
 
-	if searchingType == searchingFlex {
+	if searchingType == SearchingFlex {
 		urlCalled = fmt.Sprintf("https://restapifrontoffice.reservauto.net/api/v2/Vehicle/FreeFloatingAvailability?CityId=%d&MaxLatitude=%f&MinLatitude=%f&MaxLongitude=%f&MinLongitude=%f", cityId, maxCoordinate.latitude, minCoordinate.latitude, maxCoordinate.longitude, minCoordinate.longitude)
-	} else if searchingType == searchingStation {
+	} else if searchingType == SearchingStation {
 		startDateFormat := startDate.Format(dateFormat)
 		endDataFormat := endDate.Format(dateFormat)
 
@@ -95,13 +95,13 @@ func searchCar(searchingType SearchType, cityId CityId, currentCoordinate Coordi
 
 				var err error
 
-				if searchingType == searchingFlex {
+				if searchingType == SearchingFlex {
 					var flexAvailable flexCarResponse
 
 					err = apiCall(urlCalled, &flexAvailable)
 
 					nbCarFound = flexAvailable.TotalNbVehicles
-				} else if searchingType == searchingStation {
+				} else if searchingType == SearchingStation {
 					var stationsAvailable stationsResponse
 
 					err = apiCall(urlCalled, &stationsAvailable)
