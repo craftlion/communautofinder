@@ -20,7 +20,7 @@ func TestUseExemple(t *testing.T) {
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car
-	nbCarFoundStation := SearchStationCar(cityId, currentCoordinate, 10, startDate, endDate, []VehiculeType{3, 5})
+	nbCarFoundStation := SearchStationCar(cityId, currentCoordinate, 10, startDate, endDate, FamilyCar)
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 
 	/////////////////////////////////
@@ -39,7 +39,7 @@ func TestUseExemple(t *testing.T) {
 	fmt.Printf("Flex cars found : %d \n", nbCarFoundFlex)
 
 	// Search station car with go routine
-	go SearchStationCarForGoRoutine(cityId, currentCoordinate, 10, startDate, endDate, []VehiculeType{3, 5}, resultsChannelStation, ctx, cancel)
+	go SearchStationCarForGoRoutine(cityId, currentCoordinate, 10, startDate, endDate, FamilyCar, resultsChannelStation, ctx, cancel)
 	nbCarFoundStation = <-resultsChannelStation
 	fmt.Printf("Station cars found : %d \n", nbCarFoundStation)
 

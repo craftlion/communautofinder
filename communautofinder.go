@@ -17,10 +17,10 @@ const dateFormat = "2006-01-02T15:04:05" // time format accepted by communauto A
 
 // As soon as at least one car is found return the number of cars found
 
-func SearchStationCar(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeTypes []VehiculeType) int {
+func SearchStationCar(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeType VehiculeType) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeTypes, responseChannel, ctx, cancel)
+	nbCarFound := searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeType, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
@@ -30,14 +30,14 @@ func SearchStationCar(cityId CityId, currentCoordinate Coordinate, marginInKm fl
 func SearchFlexCar(cityId CityId, currentCoordinate Coordinate, marginInKm float64) int {
 	responseChannel := make(chan int, 1)
 	ctx, cancel := context.WithCancel(context.Background())
-	nbCarFound := searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancel)
+	nbCarFound := searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, AllTypes, responseChannel, ctx, cancel)
 	cancel()
 
 	return nbCarFound
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
-func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeTypes []VehiculeType, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
+func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeType VehiculeType, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 
 	defer func() {
 		if r := recover(); r != nil {
@@ -46,7 +46,7 @@ func SearchStationCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, m
 		}
 	}()
 
-	return searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeTypes, responseChannel, ctx, cancelCtxFunc)
+	return searchCar(SearchingStation, cityId, currentCoordinate, marginInKm, startDate, endDate, vehiculeType, responseChannel, ctx, cancelCtxFunc)
 }
 
 // This function is designed to be called as a goroutine. As soon as at least one car is found return the number of cars found. Or can be cancelled by the context
@@ -59,11 +59,11 @@ func SearchFlexCarForGoRoutine(cityId CityId, currentCoordinate Coordinate, marg
 		}
 	}()
 
-	return searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, []VehiculeType{}, responseChannel, ctx, cancelCtxFunc)
+	return searchCar(SearchingFlex, cityId, currentCoordinate, marginInKm, time.Time{}, time.Time{}, AllTypes, responseChannel, ctx, cancelCtxFunc)
 }
 
 // Loop until a result is found. Return the number of cars found or can be cancelled by the context
-func searchCar(searchingType SearchType, cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeTypes []VehiculeType, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
+func searchCar(searchingType SearchType, cityId CityId, currentCoordinate Coordinate, marginInKm float64, startDate time.Time, endDate time.Time, vehiculeType VehiculeType, responseChannel chan<- int, ctx context.Context, cancelCtxFunc context.CancelFunc) int {
 	minCoordinate, maxCoordinate := currentCoordinate.ExpandCoordinate(marginInKm)
 
 	var urlCalled string
@@ -74,7 +74,11 @@ func searchCar(searchingType SearchType, cityId CityId, currentCoordinate Coordi
 		startDateFormat := startDate.Format(dateFormat)
 		endDataFormat := endDate.Format(dateFormat)
 
-		urlCalled = fmt.Sprintf("https://restapifrontoffice.reservauto.net/api/v2/StationAvailability?CityId=%d&MaxLatitude=%f&MinLatitude=%f&MaxLongitude=%f&MinLongitude=%f&StartDate=%s&EndDate=%s&VehicleTypes=%v", cityId, maxCoordinate.latitude, minCoordinate.latitude, maxCoordinate.longitude, minCoordinate.longitude, url.QueryEscape(startDateFormat), url.QueryEscape(endDataFormat), vehiculeTypes)
+		urlCalled = fmt.Sprintf("https://restapifrontoffice.reservauto.net/api/v2/StationAvailability?CityId=%d&MaxLatitude=%f&MinLatitude=%f&MaxLongitude=%f&MinLongitude=%f&StartDate=%s&EndDate=%s", cityId, maxCoordinate.latitude, minCoordinate.latitude, maxCoordinate.longitude, minCoordinate.longitude, url.QueryEscape(startDateFormat), url.QueryEscape(endDataFormat))
+
+		if vehiculeType != AllTypes {
+			urlCalled += fmt.Sprintf("&VehicleTypes=%d", vehiculeType)
+		}
 	}
 
 	msSecondeToSleep := 0

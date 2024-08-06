@@ -18,6 +18,7 @@ const (
 type VehiculeType int
 
 const (
+	AllTypes       VehiculeType = 0
 	FamilyCar      VehiculeType = 1
 	UtilityVehicle VehiculeType = 2
 	MidSize        VehiculeType = 3
